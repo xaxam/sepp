@@ -1,0 +1,197 @@
+#!/usr/bin/env ruby
+
+require 'open3'
+require 'open-uri'
+require 'rubygems'
+require 'terminal-notifier'
+require 'thor'
+
+$handle = 8
+
+class Sente
+	
+	# Sente applescript one-line commands
+	def sente6(command)
+		as = "osascript -e 'tell application \"Sente 6\" to " + command + "'"
+		stdin, stdout, stderr = Open3.popen3(as)
+		r = stdout.read
+	end
+	
+	# main parser invoked with command `sepp scan`
+	def scanfile(source, options)
+		
+		fn = File.basename(source,".*")
+		
+		if options[:backup]
+			fback = File.join( File.dirname(source), "#{fn}_bak.md" )
+			`cp #{source} #{fback}`
+		end
+		
+		# read and mark up {bibliography} for later use
+		File.open(source) { |mdf| @md = mdf.read.gsub('{bibliography}','[--bib--]') }
+
+		# get all citation ids (as matchData, therefore enumerate and not just .scan )
+		cids = @md.to_enum(:scan, /\{.+?\}/).map { Regexp.last_match }
+
+		# get all inline references from Sente
+		inl = sente6('create bibliography elements current library from tags "' + cids.join('||').gsub(/[\{\}]/,'').gsub('\\', '\&\&') + '" for intext').split('||')
+		bib = sente6('create bibliography elements current library from tags "' + cids.join('||').gsub(/[\{\}]/,'').gsub('\\', '\&\&') + '" for bibliography')
+
+		# inverse arrays
+		cids = cids.reverse
+		inl = inl.reverse.drop(1)
+
+		log = []
+		err = []
+
+		if cids.count == inl.count 
+			cids.to_enum.with_index.each { |cid, i| 
+	
+			# log this to allow for unscanning later
+			# original citation id, formated inline citation, pre-match string (if formated in not unique)
+			log << cid.to_s + '|' +  inl[i] + '|' + cid.pre_match.split(//).last($handle).join
+
+			# through error if no match found
+			err << cid.to_s if inl[i] == '()'
+
+			# replace citation id with formated string, using the offsets in cids's matchData
+			o = cid.offset(0)
+			@md[(o[0])..(o[1] - 1)] = inl[i]
+
+			}
+		end
+
+		if err.count > 0
+	
+			# notity
+			@message = 'No match found for: ' + err.join(", ")
+			
+			if options[:notify]
+				TerminalNotifier.notify(@message, :title => "No bibliography produced...", :open => "http://www.something.com")
+			end
+			
+			puts @message
+	
+		else
+			# Write output file (with added bibliography)
+			File.open(source, 'w') {|f| f << @md.gsub('[--bib--]', bib.gsub('.<i> ','. *').gsub("<br>", "\n\n").gsub('<i>','*').gsub('</i>','*'))}
+
+			# Write log file
+			`mkdir -p "$HOME/Library/Application Support/sepp"`
+			File.open(ENV["HOME"] + '/Library/Application Support/sepp/' + fn + '.log', 'w') {|f| f << log.join("\n")}
+
+			#notify
+			@message = 'Inline: ' + inl.count.to_s + '; References: ' + bib.gsub("<br>", "\n").lines.count.to_s + '.'
+			
+			if options[:notify]
+				TerminalNotifier.notify(@message, :title => "Successfully produces bibliography", :open => "http://www.something.com")
+			end
+			puts @message
+		end			
+	end
+	
+	# command 'sepp unscan`
+	def unscanfile(source, options)
+		
+		fn = File.basename(source,".*")
+		lg = ENV["HOME"] + '/Library/Application Support/sepp/' + fn + '.log'
+
+		if options[:backup]
+			fback = File.join( File.dirname(source), "#{fn}_bak.md" )
+			`cp #{source} #{fback}`
+		end
+
+		# read and mark up {bibliography} for later use
+		File.open(source) { |mdf| @md = mdf.read }
+		File.open(lg) {|f| @log = f.read.split("\n")} rescue @log = []
+
+		err = []
+
+		@log.each { |ref| 
+
+			e = ref.split('|')
+			n = @md.scan(e[1]).count
+
+			if n == 1
+				# one matching string found. Proceed, replace
+				@md.sub!(e[1], e[0])
+	
+			elsif n > 1
+				# not unique, try with match_pre data
+				x = @md.scan(e[2] + e[1]).count
+	
+					if x == 1
+					@md.sub!(e[2] + e[1],  e[2] + e[0])
+
+					elsif x > 1
+						#still not unique. Mark both?
+						err << e
+					else
+						# nothing found. Inline ref still there, but match_pre changed. Use last?
+						err << e
+					end
+	
+			else
+				# no matching inline reference found. Inline ref probably deleted...
+				err << e
+			end
+
+		}
+
+		if options[:removebibliography]
+		
+			#look for markdown title 'References' or 'Bibliography'
+			refheading = @md.match(/^[\#]+[\s]*(References|Bibliography)/)
+			refstart = refheading.offset(0)[0]
+			refend = refheading.post_match.match(/^[\#]+.+/).offset(0)[1] rescue refend = @md.length
+			@md[refstart,refend + 1] = refheading.to_s + "\n\n{bibliography}"
+		
+		end
+
+		File.open(source, 'w') {|f| f << @md}
+
+		if err == []
+		
+			# remove log file
+			`rm -f "#{lg}"`
+			
+			#notify			
+			@message = "Successfully unscanned."
+			TerminalNotifier.notify(@message, :title => "sepp unscan", :open => "http://www.something.com") if options[:notify]
+			puts @message			
+		
+		else
+		
+			#notify
+			@message = "Unscanned with errors. See log file."
+			TerminalNotifier.notify(@message, :title => "sepp unscan", :open => "http://www.something.com") if options[:notify]
+			File.open(lg, 'w') {|f| f << err.join("\n")}
+			puts @message
+
+		end 
+	
+	end
+	
+end
+
+
+class Sepp < Thor
+	desc "scan source", "create bibliography for  'source'"
+	option :backup, :aliases => "-b"
+	option :notify, :aliases => "-n"
+	def scan(source)
+		r = Sente.new
+		r.scanfile(source, options)
+	end
+
+	desc "unscan source", "unsan/remove bibliography in 'source'"
+	option :backup, :aliases => "-b"
+	option :notify, :aliases => "-n"
+	option :removebibliography, :aliases => "-r"
+	def unscan(source)
+		r = Sente.new
+		r.unscanfile(source, options)
+	end
+end
+
+Sepp.start(ARGV)

@@ -1,0 +1,5 @@
+Inbox:
+	- add -i option to scan >> incremental 
+	- better error handling for unscan  @na
+	- set correct URL in terminal notifiers: should open source  @na
+	- check if this works on a different computer...
