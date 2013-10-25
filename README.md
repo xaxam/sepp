@@ -1,15 +1,15 @@
 # Sepp: A markdown compatible plain text parser for Sente. 
 Version 0.1.2, 15 May 2013
 
-Sepp stands for Sente Plain text Parser. [Sente](http://www.thirdstreetsoftware.com) is an academic reference manager by for Mac. After stints with Bookends, Zotero, Endnotes, Papers, Mendelay, bibtex and citeproc, I have kept coming back to it. 
+Sepp stands for Sente Plain Text Parser. [Sente](http://www.thirdstreetsoftware.com) is an academic reference manager by for Mac. After stints with Bookends, Zotero, Endnotes, Papers, Mendelay, bibtex and citeproc, I have kept coming back to it. 
 
 However, my one big problem was that Sente's built in parser for plain text files is not markdown compatible. It does not output markdown style *italics*, for example, which makes it essentially useless for markdown workflows. Sepp fills this gap and offers additional options, such as scanning in place and a (somewhat experimental) "unscan" feature.
 
-Sepp is a simple command-line tool written in ruby.
+Sepp is a simple command-line tool written in Ruby.
 
 ## Installation
 
-*Sepp* is a simple ruby script that depends on thor and terminal-notifier (if you use the -n option; see below). Install both gems if you do not already have them:
+*Sepp* depends on *thor* and *terminal-notifier* (if you use the -n option; see below). Install both gems if you do not already have them:
 
     gem install thor
     gem install terminal-notifier
@@ -49,7 +49,7 @@ The `unscan` is primarily meant to allow simple round-tripping: send a document 
 
 ## Important warning
 
-I frequently use `sepp` for my own writing but I have not tested it widely. Be prepared for errors or unexpected results. Use git or another version control system and commit all changes before scanning or unscanning documents.
+I frequently use *sepp* for my own writing but I have not tested it widely. Be prepared for errors or unexpected results. Use git or another version control system and commit all changes before scanning or unscanning documents.
 
 
 
