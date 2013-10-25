@@ -1,5 +1,5 @@
 # Sepp: A markdown compatible plain text parser for Sente. 
-Version 1.0.2, 15 May 2013
+Version 0.1.2, 15 May 2013
 
 Sepp stands for Sente Plain text Parser. [Sente](http://www.thirdstreetsoftware.com) is an academic reference manager by for Mac. After stints with Bookends, Zotero, Endnotes, Papers, Mendelay, bibtex and citeproc, I have kept coming back to it. 
 
@@ -8,6 +8,7 @@ However, my one big problem was that Sente's built in parser for plain text file
 Sepp is a simple command-line tool written in ruby.
 
 ## Installation
+
 *Sepp* is a simple ruby script that depends on thor and terminal-notifier (if you use the -n option; see below). Install both gems if you do not already have them:
 
     gem install thor
@@ -20,9 +21,11 @@ Put the *sepp*-folder anywhere, and create a symbolic link in /usr/local/bin: op
 Type `sepp` in your terminal and you should be presented with a summary of the commands. Tested under Mac OSX 10.7 and Ruby 1.9 and nowhere else...
 
 ## Usage
+
 *Sepp* has two commands: scan and unscan:
 
 ### Scan
+
 `sepp scan manuscript.md` will update the document with a bibliography in the last used bibliography style.
 
 *Arguments:* 
@@ -31,6 +34,7 @@ Type `sepp` in your terminal and you should be presented with a summary of the c
 `--notify` or `-n`: use Mac OS X notifications. This may be helpful if you plan to integrate *sepp* into other scripts or Automator workflows.
 
 ### Unscan
+
 `sepp unscan manuscript.md` will (try to) "unscan" your manuscript and put back the original Sente citation markers – {Doe 2013@123}, for example. 
 
 This feature is somewhat experimental. It should work for round-tripping with moderate editing, but will probably fail in the case of a complete rewrite of the document. Feel free to look at the code and suggest better options.
@@ -44,7 +48,8 @@ The `unscan` is primarily meant to allow simple round-tripping: send a document 
 `-r`: remove bibliography, or try to do so. This only works if there is a markdown header 'Bibliography' or 'Reference' in the document. Unless specified, unscan will only change inline citations, but leave the bibliography untouched. This option is not well tested. Back up your document using the `-b` option.
 
 ## Important warning
-`Sepp` has not been widely used and tested yet. Be prepared for errors or unexpected results. Use git or another version control system and commit all changes before scanning or unscanning documents.
+
+I frequently use `sepp` for my own writing but I have not tested it widely. Be prepared for errors or unexpected results. Use git or another version control system and commit all changes before scanning or unscanning documents.
 
 
 
